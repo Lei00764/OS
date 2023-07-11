@@ -8,31 +8,40 @@
 
 void pipe_filter(int pipe_fd[2])
 {
-    int new_pipe_fd[2];
-    pipe(new_pipe_fd);
-
-    int buffer;
-    int first_num;
-
-    if (read(pipe_fd[PIPE_READ], &buffer, sizeof(int)) != sizeof(int)) // 递归终止条件：不能从管道读出一个int
+    int pid = fork();
+    if (pid == 0)
     {
+        int new_pipe_fd[2];
+        pipe(new_pipe_fd);
+
+        int buffer;
+        int first_num;
+
+        if (read(pipe_fd[PIPE_READ], &buffer, sizeof(int)) != sizeof(int)) // 递归终止条件：不能从管道读出一个int
+        {
+            exit(0);
+        }
+        first_num = buffer;
+
+        printf("prime %d\n", first_num);
+
+        while (read(pipe_fd[PIPE_READ], &buffer, sizeof(int)))
+        {
+            if (buffer % first_num != 0) // 说明不是 first_num 的倍数
+            {
+                write(new_pipe_fd[PIPE_WRITE], &buffer, sizeof(int));
+            }
+        }
+        close(pipe_fd[PIPE_READ]); // 端口用完后，及时关闭
+        close(new_pipe_fd[PIPE_WRITE]);
+
+        pipe_filter(new_pipe_fd);
+    }
+    else
+    {
+        wait(&pid);
         exit(0);
     }
-    first_num = buffer;
-
-    printf("prime %d\n", first_num);
-
-    while (read(pipe_fd[PIPE_READ], &buffer, sizeof(int)))
-    {
-        if (buffer % first_num != 0) // 说明不是 first_num 的倍数
-        {
-            write(new_pipe_fd[PIPE_WRITE], &buffer, sizeof(int));
-        }
-    }
-    close(pipe_fd[PIPE_READ]); // 端口用完后，及时关闭
-    close(new_pipe_fd[PIPE_WRITE]);
-
-    pipe_filter(new_pipe_fd);
 }
 
 int main(int argc, char *argv[])
