@@ -12,7 +12,7 @@ void pipe_filter(int pipe_fd[2])
     if (pid == 0)
     {
         int new_pipe_fd[2];
-        pipe(new_pipe_fd);
+        pipe(new_pipe_fd); // 定义一个新的管道
 
         int buffer;
         int first_num;

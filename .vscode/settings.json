@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.vue": "vue",
+        "stat.h": "c",
+        "__tree": "c",
+        "iomanip": "c",
+        "istream": "c",
+        "locale": "c",
+        "*.tcc": "c",
+        "iosfwd": "c",
+        "limits": "c",
+        "sstream": "c",
+        "stop_token": "c",
+        "streambuf": "c"
+    }
+}
