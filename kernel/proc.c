@@ -172,6 +172,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->trace_mask = 0; // 释放
 }
 
 // Create a user page table for a given process,
@@ -305,6 +306,9 @@ int fork(void)
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
+
+  // 把trace_mask赋值给子进程
+  np->trace_mask = p->trace_mask;
 
   // increment reference counts on open file descriptors.
   for (i = 0; i < NOFILE; i++)

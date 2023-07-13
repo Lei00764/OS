@@ -124,7 +124,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_link] sys_link,
     [SYS_mkdir] sys_mkdir,
     [SYS_close] sys_close,
-    [SYS_trace] sys_trace,
+    [SYS_trace] sys_trace, // step6
 };
 
 // 将系统调用号转换成系统调用名称
@@ -141,7 +141,14 @@ void syscall(void)
   num = p->trapframe->a7;
   if (num > 0 && num < NELEM(syscalls) && syscalls[num])
   {
-    p->trapframe->a0 = syscalls[num]();
+    p->trapframe->a0 = syscalls[num](); // 调用返回值
+
+    // 当每次执行系统调用时候，打印
+    int mask = p->trace_mask; // 接收mask
+    if ((mask >> num) & 1)    // 右移 num 位，与 1（即判断移动后各位是否是1
+    {
+      printf("%d: syscall %s -> %d\n", p->pid, syscall_name[num], p->trapframe->a0);
+    }
   }
   else
   {

@@ -103,4 +103,14 @@ sys_uptime(void)
 uint64 sys_trace(void) // step4
 {
   // 设置进程掩码
+  // printf("[INFO] run sys_trace\n");
+
+  int mask; // 这行从 sys_exit 复制过来
+  if (argint(0, &mask) < 0)
+    return -1;
+
+  struct proc *p = myproc(); // 获取当前进程
+  p->trace_mask = mask;      // 把掩码赋给这个进程
+
+  return 0;
 }
