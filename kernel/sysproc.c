@@ -114,3 +114,9 @@ uint64 sys_trace(void) // step4
 
   return 0;
 }
+
+uint64 sys_sysinfo(void)
+{
+  printf("[info] call sys_sysinfo\n");
+  return 0;
+}

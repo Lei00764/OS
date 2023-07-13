@@ -21,5 +21,6 @@
 #define SYS_mkdir 20
 #define SYS_close 21
 #define SYS_trace 22 // step3
+#define SYS_sysinfo 23
 
 // 2147483647 = 01111111 11111111 11111111 11111111 跟踪每一个系统调用

@@ -101,6 +101,7 @@ extern uint64 sys_wait(void);
 extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_trace(void); // step5
+extern uint64 sys_sysinfo(void);
 
 static uint64 (*syscalls[])(void) = {
     [SYS_fork] sys_fork,
@@ -125,13 +126,14 @@ static uint64 (*syscalls[])(void) = {
     [SYS_mkdir] sys_mkdir,
     [SYS_close] sys_close,
     [SYS_trace] sys_trace, // step6
+    [SYS_sysinfo] sys_sysinfo,
 };
 
 // 将系统调用号转换成系统调用名称
 static char *syscall_name[] = {
     "", "fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup",
     "getpid", "sbrk", "sleep", "uptime", "open", "write", "mknod", "unlink", "link", "mkdir",
-    "close", "trace"};
+    "close", "trace", "sysinfo"};
 
 void syscall(void)
 {
