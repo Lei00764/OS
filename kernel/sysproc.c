@@ -6,6 +6,10 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
+
+uint64 get_free_mem(void); // kernel/kalloc.c
+uint64 get_num_proc(void); // kernel/proc.c
 
 uint64
 sys_exit(void)
@@ -115,8 +119,22 @@ uint64 sys_trace(void) // step4
   return 0;
 }
 
-uint64 sys_sysinfo(void)
+uint64
+sys_sysinfo(void)
 {
-  printf("[info] call sys_sysinfo\n");
+  // printf("[info] call sys_sysinfo\n");
+
+  uint64 addr;
+  if (argaddr(0, &addr) < 0) // 将接收到的第一个参数（下标0）的地址放在 addr  从用户空间获取参数值
+    return -1;
+
+  struct sysinfo info; // 获取需要的 info 信息
+  info.freemem = get_free_mem();
+  info.nproc = get_num_proc();
+
+  struct proc *p = myproc(); // 获取进程
+
+  if (copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0) // 将 info 拷贝到用户空间 addr
+    return -1;
   return 0;
 }

@@ -682,3 +682,26 @@ void procdump(void)
     printf("\n");
   }
 }
+
+/**
+ * @brief 统计状态不是UNUSED的进程
+ *
+ * @return uint64
+ */
+uint64 get_num_proc(void)
+{
+  struct proc *p;
+  uint64 count = 0; // 统计状态不是UNUSED的进程
+
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->state != UNUSED)
+    {
+      count++;
+    }
+
+    release(&p->lock);
+  }
+  return count;
+}
