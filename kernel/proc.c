@@ -145,6 +145,7 @@ allocproc(void)
         release(&p->lock);
         return 0;
     }
+    p->usyscall->pid = p->pid;  // °Ñ pid ´«¸ø usyscall
 
     // An empty user page table.
     p->pagetable = proc_pagetable(p);
