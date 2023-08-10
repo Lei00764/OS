@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.vue": "vue",
+        "user.h": "c",
+        "syscall.h": "c"
+    }
+}
