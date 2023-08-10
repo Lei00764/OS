@@ -593,7 +593,7 @@ uint64 sys_mmap(void)
   return addr;
 }
 
-// lab10
+//
 uint64 sys_munmap(void)
 {
   uint64 addr, va;

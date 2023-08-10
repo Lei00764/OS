@@ -177,12 +177,12 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: walk");
     if ((*pte & PTE_V) == 0)
     {
-      continue; // lab10
-      //      panic("uvmunmap: not mapped");  // lab10
+      continue; //
+      //      panic("uvmunmap: not mapped");  //
     }
     if (PTE_FLAGS(*pte) == PTE_V)
     {
-      continue; // lab10
+      continue; //
       //      panic("uvmunmap: not a leaf");
     }
     if (do_free)
@@ -453,7 +453,7 @@ int copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
-// get the dirty flag of the va's PTE - lab10
+// get the dirty flag of the va's PTE -
 int uvmgetdirty(pagetable_t pagetable, uint64 va)
 {
   pte_t *pte = walk(pagetable, va, 0);
@@ -464,7 +464,7 @@ int uvmgetdirty(pagetable_t pagetable, uint64 va)
   return (*pte & PTE_D);
 }
 
-// set the dirty flag and write flag of the va's PTE - lab10
+// set the dirty flag and write flag of the va's PTE -
 int uvmsetdirtywrite(pagetable_t pagetable, uint64 va)
 {
   pte_t *pte = walk(pagetable, va, 0);
