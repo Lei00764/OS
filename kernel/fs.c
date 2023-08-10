@@ -408,27 +408,32 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     return addr;
   }
-  // 二级索引
+
+  //
   bn -= NINDIRECT;
-  if (bn < NDINDIRECT)
+  if (bn < NDOUBLYINDIRECT)
   {
+    // get the address of doubly-indirect block
     if ((addr = ip->addrs[NDIRECT + 1]) == 0)
+    {
       ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
-    // 找到下一级索引
+    }
     bp = bread(ip->dev, addr);
     a = (uint *)bp->data;
+    // get the address of singly-indirect block
     if ((addr = a[bn / NINDIRECT]) == 0)
     {
       a[bn / NINDIRECT] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
-
     bp = bread(ip->dev, addr);
     a = (uint *)bp->data;
-    if ((addr = a[bn % NINDIRECT]) == 0)
+    bn %= NINDIRECT;
+    // get the address of direct block
+    if ((addr = a[bn]) == 0)
     {
-      a[bn % NINDIRECT] = addr = balloc(ip->dev);
+      a[bn] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
@@ -442,9 +447,9 @@ bmap(struct inode *ip, uint bn)
 // Caller must hold ip->lock.
 void itrunc(struct inode *ip)
 {
-  int i, j, k;
-  struct buf *bp, *bp2;
-  uint *a, *a2;
+  int i, j, k;          //
+  struct buf *bp, *bp2; //
+  uint *a, *a2;         //
 
   for (i = 0; i < NDIRECT; i++)
   {
