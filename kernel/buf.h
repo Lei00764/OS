@@ -6,6 +6,7 @@ struct buf
   uint blockno;
   struct sleeplock lock;
   uint refcnt;
+  uint lastuse;     // 用来记录最近最少使用的
   struct buf *prev; // LRU cache list
   struct buf *next;
   uchar data[BSIZE];
