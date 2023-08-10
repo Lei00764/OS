@@ -309,23 +309,35 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for (i = 0; i < sz; i += PGSIZE)
   {
+    pte_t *pte;   // 页表项指针
+    uint64 pa;    // 物理地址
+    uint64 flags; // 页标志
+
+    // 获取在旧页表 old 中对应虚拟地址 i 的页表项指针
     if ((pte = walk(old, i, 0)) == 0)
-      panic("uvmcopy: pte should exist");
+      panic("uvmcopy: pte should exist"); // 检查页表项是否存在
+    // 检查页是否有效（存在）
     if ((*pte & PTE_V) == 0)
-      panic("uvmcopy: page not present");
+      panic("uvmcopy: page not present"); // 如果页不存在，出错
+    // 获取页表项对应的物理地址及标志位
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if ((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char *)pa, PGSIZE);
-    if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0)
+    // 如果页是可写的（被写时复制页）
+    if (flags & PTE_W)
     {
-      kfree(mem);
-      goto err;
+      // 设置 COW 标志位，清除可写标志位
+      flags = (flags | PTE_COW) & (~PTE_W);
+      *pte = PA2PTE(pa) | flags; // 更新页表项
+    }
+    // 增加物理页面的引用计数
+    incr_rc(pa);
+    // 将物理页面映射到新页表 new 中的虚拟地址 i 处
+    if (mappages(new, i, PGSIZE, pa, flags) != 0)
+    {
+      goto err; // 映射失败，跳转到错误处理
     }
   }
   return 0;
@@ -350,24 +362,28 @@ void uvmclear(pagetable_t pagetable, uint64 va)
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
+// 将内核空间数据拷贝到用户空间的函数
+// 从给定的内核地址 src 开始拷贝 len 字节的数据到用户虚拟地址 dstva 处
+
 int copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
   uint64 n, va0, pa0;
 
   while (len > 0)
   {
-    va0 = PGROUNDDOWN(dstva);
-    pa0 = walkaddr(pagetable, va0);
-    if (pa0 == 0)
+    va0 = PGROUNDDOWN(dstva);       // 获取目标虚拟地址所在的页面起始地址
+    cow_alloc(pagetable, va0);      // 分配写时复制页面
+    pa0 = walkaddr(pagetable, va0); // 获取目标虚拟地址对应的物理地址
+    if (pa0 == 0)                   // 如果物理地址无效，则返回 -1
       return -1;
-    n = PGSIZE - (dstva - va0);
-    if (n > len)
+    n = PGSIZE - (dstva - va0); // 计算当前页面剩余可写入字节数
+    if (n > len)                // 如果剩余字节数大于待写入字节数，就使用待写入字节数
       n = len;
-    memmove((void *)(pa0 + (dstva - va0)), src, n);
+    memmove((void *)(pa0 + (dstva - va0)), src, n); // 写入数据到页面
 
-    len -= n;
-    src += n;
-    dstva = va0 + PGSIZE;
+    len -= n;             // 减少待写入字节数
+    src += n;             // 更新源内存指针
+    dstva = va0 + PGSIZE; // 更新目标虚拟地址，指向下一页
   }
   return 0;
 }

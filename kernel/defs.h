@@ -58,6 +58,8 @@ void itrunc(struct inode *);
 void ramdiskinit(void);
 void ramdiskintr(void);
 void ramdiskrw(struct buf *);
+void incr_rc(uint64);
+int cow_alloc(pagetable_t, uint64);
 
 // kalloc.c
 void *kalloc(void);
