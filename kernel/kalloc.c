@@ -21,27 +21,18 @@ struct run
 
 struct
 {
+  // 每个CPU都有一个lock与freeList
   struct spinlock lock;
   struct run *freelist;
+  // 每个CPU拥有的空闲页数
+  int freePageCount;
 } kmem[NCPU];
-
-char *kmem_lock_names[] = {
-    "kmem_cpu_0",
-    "kmem_cpu_1",
-    "kmem_cpu_2",
-    "kmem_cpu_3",
-    "kmem_cpu_4",
-    "kmem_cpu_5",
-    "kmem_cpu_6",
-    "kmem_cpu_7",
-};
 
 void kinit()
 {
   for (int i = 0; i < NCPU; i++)
-  {
-    initlock(&kmem[i].lock, kmem_lock_names[i]);
-  }
+    initlock(&kmem[i].lock, "kmem");
+
   freerange(end, (void *)PHYSTOP);
 }
 
@@ -69,14 +60,16 @@ void kfree(void *pa)
 
   r = (struct run *)pa;
 
+  // 优先把空闲页释到放当前的CPU
   push_off();
-  int id = cpuid();
+  int nowCpuId = cpuid();
+  acquire(&kmem[nowCpuId].lock);
+  r->next = kmem[nowCpuId].freelist;
+  kmem[nowCpuId].freelist = r;
+  // 记录空闲页数变化
+  kmem[nowCpuId].freePageCount++;
+  release(&kmem[nowCpuId].lock);
   pop_off();
-
-  acquire(&kmem[id].lock);
-  r->next = kmem[id].freelist;
-  kmem[id].freelist = r;
-  release(&kmem[id].lock);
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -86,32 +79,52 @@ void *
 kalloc(void)
 {
   struct run *r;
-
+  // 优先使用当前的CPU的空闲页
   push_off();
-  int id = cpuid();
-  pop_off();
-
-  acquire(&kmem[id].lock);
-  r = kmem[id].freelist;
+  int nowCpuId = cpuid();
+  acquire(&kmem[nowCpuId].lock);
+  // 检查是否还有空闲页
+  r = kmem[nowCpuId].freelist;
   if (r)
-    kmem[id].freelist = r->next;
+  {
+    // 有就分配
+    kmem[nowCpuId].freelist = r->next;
+    // 记录空闲页数变化
+    kmem[nowCpuId].freePageCount--;
+    release(&kmem[nowCpuId].lock);
+  }
   else
   {
-    for (int i = 0; i < NCPU; i++)
+    release(&kmem[nowCpuId].lock);
+    // 没有就从拥有最多空闲页的cpu偷一个
+    int selectedCpuId = 0;
+    acquire(&kmem[0].lock);
+    for (int i = 1; i < NCPU; i++)
     {
-      if (i == id)
+      if (i == nowCpuId)
         continue;
       acquire(&kmem[i].lock);
-      r = kmem[i].freelist;
-      if (r)
-        kmem[i].freelist = r->next;
-      release(&kmem[i].lock);
-      if (r)
-        break;
+      if (kmem[i].freePageCount > kmem[selectedCpuId].freePageCount)
+      {
+        release(&kmem[selectedCpuId].lock);
+        selectedCpuId = i;
+      }
+      else
+      {
+        release(&kmem[i].lock);
+      }
     }
+    r = kmem[selectedCpuId].freelist;
+    if (r)
+    {
+      // 最多的CPU有就分配
+      kmem[selectedCpuId].freelist = r->next;
+      // 记录空闲页数变化
+      kmem[selectedCpuId].freePageCount--;
+    }
+    release(&kmem[selectedCpuId].lock);
   }
-  release(&kmem[id].lock);
-
+  pop_off();
   if (r)
     memset((char *)r, 5, PGSIZE); // fill with junk
   return (void *)r;
