@@ -121,15 +121,16 @@ void printf(char *fmt, ...)
 void backtrace(void) // step2
 {
   printf("backtrace \n");
-  uint64 fp = r_fp();
+  uint64 fp = r_fp(); // 获取当前帧指针的值
   uint64 *frame = (uint64 *)fp;
-  uint64 up = PGROUNDUP(fp);
-  uint64 down = PGROUNDDOWN(fp);
-  while (fp < up && fp > down)
+  uint64 up = PGROUNDUP(fp);     // 计算栈页的上边界
+  uint64 down = PGROUNDDOWN(fp); // 计算栈页的下边界
+  while (fp < up && fp > down)   // 帧指针在合理的栈范围内
   {
     printf("%p\n", frame[-1]);
-    fp = frame[-2];
-    frame = (uint64 *)fp;
+
+    fp = frame[-2];       // 更新帧指针，指向前一个栈帧的帧指针
+    frame = (uint64 *)fp; // 更新frame指针，指向新的栈帧
   }
 }
 
