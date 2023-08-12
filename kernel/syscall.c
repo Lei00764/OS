@@ -129,7 +129,7 @@ static uint64 (*syscalls[])(void) = {
     [SYS_sysinfo] sys_sysinfo,
 };
 
-// 将系统调用号转换成系统调用名称
+// 将系统调用号转换成系统调用名称 step10
 static char *syscall_name[] = {
     "", "fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup",
     "getpid", "sbrk", "sleep", "uptime", "open", "write", "mknod", "unlink", "link", "mkdir",
