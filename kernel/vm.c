@@ -177,13 +177,13 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: walk");
     if ((*pte & PTE_V) == 0)
     {
-      continue; //
-      //      panic("uvmunmap: not mapped");  //
+      continue; // step
+      // panic("uvmunmap: not mapped");
     }
     if (PTE_FLAGS(*pte) == PTE_V)
     {
-      continue; //
-      //      panic("uvmunmap: not a leaf");
+      continue;
+      // panic("uvmunmap: not a leaf");
     }
     if (do_free)
     {

@@ -523,7 +523,7 @@ sys_pipe(void)
   return 0;
 }
 
-uint64 sys_mmap(void)
+uint64 sys_mmap(void) // step
 {
   uint64 addr;
   int len, prot, flags, offset;
@@ -532,26 +532,31 @@ uint64 sys_mmap(void)
   struct proc *p = myproc();
   int i;
 
+  // 从用户堆栈中获取参数
   if (argaddr(0, &addr) < 0 || argint(1, &len) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argfd(4, 0, &f) < 0 || argint(5, &offset) < 0)
   {
     return -1;
   }
+
+  // 检查标志的有效性
   if (flags != MAP_SHARED && flags != MAP_PRIVATE)
   {
     return -1;
   }
-  // the file must be written when flag is MAP_SHARED
+
+  // 检查文件是否支持写入（对于 MAP_SHARED）
   if (flags == MAP_SHARED && f->writable == 0 && (prot & PROT_WRITE))
   {
     return -1;
   }
-  // offset must be a multiple of the page size
+
+  // 检查偏移是否按页大小对齐
   if (len < 0 || offset < 0 || offset % PGSIZE)
   {
     return -1;
   }
 
-  // allocate a VMA for the mapped memory
+  // 为映射内存分配一个 VMA 结构
   for (i = 0; i < NVMA; ++i)
   {
     if (!p->vma[i].addr)
@@ -565,15 +570,12 @@ uint64 sys_mmap(void)
     return -1;
   }
 
-  // assume that addr will always be 0, the kernel
-  // choose the page-aligned address at which to create
-  // the mapping
+  // 选择页对齐的地址作为映射的开始地址
   addr = MMAPMINADDR;
   for (i = 0; i < NVMA; ++i)
   {
     if (p->vma[i].addr)
     {
-      // get the max address of the mapped memory
       addr = max(addr, p->vma[i].addr + p->vma[i].len);
     }
   }
@@ -588,13 +590,12 @@ uint64 sys_mmap(void)
   vma->flags = flags;
   vma->offset = offset;
   vma->f = f;
-  filedup(f); // increase the file's reference count
+  filedup(f); // 增加文件的引用计数
 
   return addr;
 }
 
-//
-uint64 sys_munmap(void)
+uint64 sys_munmap(void) // step
 {
   uint64 addr, va;
   int len;
@@ -603,16 +604,19 @@ uint64 sys_munmap(void)
   uint maxsz, n, n1;
   int i;
 
+  // 从用户堆栈中获取参数
   if (argaddr(0, &addr) < 0 || argint(1, &len) < 0)
   {
     return -1;
   }
+
+  // 检查地址对齐和长度
   if (addr % PGSIZE || len < 0)
   {
     return -1;
   }
 
-  // find the VMA
+  // 查找对应的 VMA
   for (i = 0; i < NVMA; ++i)
   {
     if (p->vma[i].addr && addr >= p->vma[i].addr && addr + len <= p->vma[i].addr + p->vma[i].len)
@@ -626,14 +630,10 @@ uint64 sys_munmap(void)
     return -1;
   }
 
-  if (len == 0)
-  {
-    return 0;
-  }
-
+  // 处理 MAP_SHARED 类型的映射
   if ((vma->flags & MAP_SHARED))
   {
-    // the max size once can write to the disk
+    // 计算能写回磁盘的最大数据量
     maxsz = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
     for (va = addr; va < addr + len; va += PGSIZE)
     {
@@ -641,7 +641,6 @@ uint64 sys_munmap(void)
       {
         continue;
       }
-      // only write the dirty page back to the mapped file
       n = min(PGSIZE, addr + len - va);
       for (i = 0; i < n; i += n1)
       {
@@ -659,8 +658,9 @@ uint64 sys_munmap(void)
       }
     }
   }
+
+  // 解除映射并更新 VMA
   uvmunmap(p->pagetable, addr, (len - 1) / PGSIZE + 1, 1);
-  // update the vma
   if (addr == vma->addr && len == vma->len)
   {
     vma->addr = 0;
@@ -685,5 +685,6 @@ uint64 sys_munmap(void)
   {
     panic("unexpected munmap");
   }
+
   return 0;
 }
