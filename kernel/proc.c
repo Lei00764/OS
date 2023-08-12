@@ -688,7 +688,7 @@ void procdump(void)
  *
  * @return uint64
  */
-uint64 get_num_proc(void)
+uint64 get_num_proc(void) // 2-step
 {
   struct proc *p;
   uint64 count = 0; // 统计状态不是UNUSED的进程

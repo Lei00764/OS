@@ -85,7 +85,7 @@ kalloc(void)
  *
  * @return uint64
  */
-uint64 get_free_mem(void)
+uint64 get_free_mem(void) // 2-step
 {
   struct run *r;
   uint64 count = 0; // 记录页面大小

@@ -145,7 +145,7 @@ void syscall(void)
   {
     p->trapframe->a0 = syscalls[num](); // 调用返回值
 
-    // 当每次执行系统调用时候，打印
+    // 当每次执行系统调用时候，打印  step
     int mask = p->trace_mask; // 接收mask
     if ((mask >> num) & 1)    // 右移 num 位，与 1（即判断移动后各位是否是1
     {
