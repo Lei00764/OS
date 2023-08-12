@@ -409,32 +409,31 @@ bmap(struct inode *ip, uint bn)
     return addr;
   }
 
-  //
-  bn -= NINDIRECT;
+  bn -= NINDIRECT; // step3
   if (bn < NDOUBLYINDIRECT)
   {
-    // get the address of doubly-indirect block
+    // 获取双重间接块的地址。
     if ((addr = ip->addrs[NDIRECT + 1]) == 0)
     {
-      ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
+      ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev); // 为双重间接块分配一个新块。
     }
-    bp = bread(ip->dev, addr);
-    a = (uint *)bp->data;
-    // get the address of singly-indirect block
+    bp = bread(ip->dev, addr); // 从磁盘读取双重间接块。
+    a = (uint *)bp->data;      // 将双重间接块的数据转换为 uint 数组。
+    // 获取单层间接块的地址。
     if ((addr = a[bn / NINDIRECT]) == 0)
     {
-      a[bn / NINDIRECT] = addr = balloc(ip->dev);
-      log_write(bp);
+      a[bn / NINDIRECT] = addr = balloc(ip->dev); // 为单层间接块分配一个新块。
+      log_write(bp);                              // 将更改记录到磁盘日志。
     }
-    brelse(bp);
-    bp = bread(ip->dev, addr);
-    a = (uint *)bp->data;
-    bn %= NINDIRECT;
-    // get the address of direct block
+    brelse(bp);                // 释放缓冲区。
+    bp = bread(ip->dev, addr); // 从磁盘读取单层间接块。
+    a = (uint *)bp->data;      // 将单层间接块的数据转换为 uint 数组。
+    bn %= NINDIRECT;           // 计算在单层间接块中的块号。
+    // 获取直接块的地址。
     if ((addr = a[bn]) == 0)
     {
-      a[bn] = addr = balloc(ip->dev);
-      log_write(bp);
+      a[bn] = addr = balloc(ip->dev); // 为直接块分配一个新块。
+      log_write(bp);                  // 将更改记录到磁盘日志。
     }
     brelse(bp);
     return addr;
@@ -447,62 +446,65 @@ bmap(struct inode *ip, uint bn)
 // Caller must hold ip->lock.
 void itrunc(struct inode *ip)
 {
-  int i, j, k;          //
-  struct buf *bp, *bp2; //
-  uint *a, *a2;         //
+  int i, j, k;
+  struct buf *bp, *bp2; // 用于磁盘缓冲区的指针
+  uint *a, *a2;         // 指向数据块指针数组的指针
 
+  // 释放直接块
   for (i = 0; i < NDIRECT; i++)
   {
     if (ip->addrs[i])
     {
-      bfree(ip->dev, ip->addrs[i]);
-      ip->addrs[i] = 0;
+      bfree(ip->dev, ip->addrs[i]); // 释放直接块对应的磁盘块
+      ip->addrs[i] = 0;             // 清除对应的块指针
     }
   }
 
+  // 释放单层间接块
   if (ip->addrs[NDIRECT])
   {
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint *)bp->data;
+    bp = bread(ip->dev, ip->addrs[NDIRECT]); // 读取单层间接块
+    a = (uint *)bp->data;                    // 转换数据为 uint 数组
     for (j = 0; j < NINDIRECT; j++)
     {
       if (a[j])
-        bfree(ip->dev, a[j]);
+        bfree(ip->dev, a[j]); // 释放单层间接块中的块
     }
-    brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT]);
-    ip->addrs[NDIRECT] = 0;
+    brelse(bp);                         // 释放缓冲区
+    bfree(ip->dev, ip->addrs[NDIRECT]); // 释放单层间接块对应的磁盘块
+    ip->addrs[NDIRECT] = 0;             // 清除单层间接块指针
   }
 
+  // 释放双层间接块
   if (ip->addrs[NDIRECT + 1])
   {
-    bp = bread(ip->dev, ip->addrs[NDIRECT + 1]);
-    a = (uint *)bp->data;
+    bp = bread(ip->dev, ip->addrs[NDIRECT + 1]); // 读取双层间接块
+    a = (uint *)bp->data;                        // 转换数据为 uint 数组
     for (j = 0; j < NINDIRECT; ++j)
     {
       if (a[j])
       {
-        bp2 = bread(ip->dev, a[j]);
-        a2 = (uint *)bp2->data;
+        bp2 = bread(ip->dev, a[j]); // 读取单层间接块
+        a2 = (uint *)bp2->data;     // 转换数据为 uint 数组
         for (k = 0; k < NINDIRECT; ++k)
         {
           if (a2[k])
           {
-            bfree(ip->dev, a2[k]);
+            bfree(ip->dev, a2[k]); // 释放双层间接块中的块
           }
         }
-        brelse(bp2);
-        bfree(ip->dev, a[j]);
-        a[j] = 0;
+        brelse(bp2);          // 释放缓冲区
+        bfree(ip->dev, a[j]); // 释放单层间接块对应的磁盘块
+        a[j] = 0;             // 清除单层间接块指针
       }
     }
-    brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT + 1]);
-    ip->addrs[NDIRECT + 1] = 0;
+    brelse(bp);                             // 释放缓冲区
+    bfree(ip->dev, ip->addrs[NDIRECT + 1]); // 释放双层间接块对应的磁盘块
+    ip->addrs[NDIRECT + 1] = 0;             // 清除双层间接块指针
   }
 
-  ip->size = 0;
-  iupdate(ip);
+  ip->size = 0; // 文件大小清零
+  iupdate(ip);  // 更新 inode 结构到磁盘
 }
 
 // Copy stat information from inode.

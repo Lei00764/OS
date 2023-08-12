@@ -384,10 +384,14 @@ sys_open(void)
     return -1;
   }
 
-  if (ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0)
+  // 如果 inode 类型为符号链接，同时 omode 没有设置 O_NOFOLLOW 标志
+
+  if (ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0) // 2-stp
   {
+    // 跟随符号链接，尝试获取链接指向的 inode
     if ((ip = follow_symlink(ip)) == 0)
     {
+      // 结束文件系统操作
       end_op();
       return -1;
     }
@@ -572,7 +576,7 @@ sys_pipe(void)
   return 0;
 }
 
-uint64 sys_symlink(void)
+uint64 sys_symlink(void) // 2-step3
 {
   char path[MAXPATH], target[MAXPATH];
   struct inode *ip;
